@@ -6,28 +6,34 @@ on:
 
 jobs:
   deploy:
+    name: Deploy Frontend to EC2
     runs-on: ubuntu-latest
 
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v3
+      - name: Checkout repository
+        uses: actions/checkout@v3
 
-    - name: SSH & Deploy to EC2
-      uses: appleboy/ssh-action@v0.1.10
-      with:
-        host: ${{ secrets.EC2_HOST }}
-        username: ${{ secrets.EC2_USER }}
-        key: ${{ secrets.EC2_SSH_KEY }}
-        script: |
-          mkdir -p ~/frontend-ui
-          cd ~/frontend-ui
-          if [ ! -d ".git" ]; then
-            git clone https://github.com/Masdika1/uts-frontend-cicd.git .
-          else
-            git reset --hard
-            git pull origin main
-          fi
-          docker build -t frontend-ui .
-          docker stop frontend-container || true
-          docker rm frontend-container || true
-          docker run -d -p 3000:3000 --name frontend-container frontend-ui
+      - name: Deploy to EC2 via SSH
+        uses: appleboy/ssh-action@v0.1.10
+        with:
+          host: ${{ secrets.EC2_HOST }}           # Wajib: isi dengan IP EC2
+          username: ${{ secrets.EC2_USER }}       # Wajib: contoh 'ubuntu'
+          key: ${{ secrets.EC2_SSH_KEY }}         # Wajib: private key dalam format string
+          port: 22
+          script: |
+            echo "🔧 Masuk ke EC2 dan deploy frontend-ui..."
+            mkdir -p ~/frontend-ui
+            cd ~/frontend-ui
+            if [ ! -d ".git" ]; then
+              git clone https://github.com/Masdika1/uts-frontend-cicd.git .
+            else
+              git reset --hard
+              git pull origin main
+            fi
+            echo "🐳 Build Docker image..."
+            docker build -t frontend-ui .
+            docker stop frontend-container || true
+            docker rm frontend-container || true
+            docker run -d -p 3000:3000 --name frontend-container frontend-ui
+            echo "✅ Deployment selesai!"
+
